@@ -7,274 +7,138 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   background: #1a1a2e;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  font-family: system-ui, sans-serif;
-  overflow: hidden;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; font-family: system-ui, sans-serif; overflow: hidden;
 }
-canvas { border-radius: 16px; }
-.stats-panel {
-  display: flex; gap: 16px; margin-top: 12px;
-  background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 12px;
+canvas { border-radius: 24px; }
+.panel {
+  display: flex; gap: 16px; margin-top: 16px;
+  background: rgba(255,255,255,0.06); padding: 14px 24px; border-radius: 14px;
 }
-.stat { color: #ccc; font-size: 14px; }
-.stat span { color: #fff; font-weight: bold; }
-.controls { display: flex; gap: 10px; margin-top: 12px; }
+.stat { color: #888; font-size: 15px; }
+.stat span { color: #fff; font-weight: 700; }
+.btns { display: flex; gap: 12px; margin-top: 14px; }
 button {
-  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
-  font-size: 14px; background: rgba(255,255,255,0.1); color: #fff; transition: .2s;
+  padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600; transition: all 0.2s;
 }
-button:hover { background: rgba(255,255,255,0.2); }
-button.feed { background: #FF6B6B; }
-button.play { background: #4ECDC4; }
-button.pet { background: #FFE66D; color: #333; }
-.bubble-overlay {
-  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  background: white; padding: 10px 18px; border-radius: 20px; font-size: 24px;
-  pointer-events: none; opacity: 0; transition: opacity 0.3s;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+button:hover { transform: scale(1.06); }
+button:active { transform: scale(0.96); }
+.btn-feed { background: #FF6B6B; color: #fff; }
+.btn-play { background: #45B7D1; color: #fff; }
+.btn-pet { background: #FFD93D; color: #333; }
+.toast {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  background: #fff; padding: 12px 22px; border-radius: 24px;
+  font-size: 28px; pointer-events: none; opacity: 0;
+  transition: opacity 0.25s; box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  z-index: 10;
 }
-.bubble-overlay.show { opacity: 1; }
+.toast.on { opacity: 1; }
 </style>
 </head>
 <body>
-<div class="bubble-overlay" id="bubble"></div>
-<canvas id="sharkCanvas" width="300" height="300"></canvas>
-<div class="stats-panel">
-  <div class="stat">🍔 饥饿: <span id="hungerVal">80</span></div>
-  <div class="stat">😊 心情: <span id="moodVal">90</span></div>
-  <div class="stat">⚡ 体力: <span id="energyVal">75</span></div>
-  <div class="stat">💰 金币: <span id="coinsVal">0</span></div>
+<div class="toast" id="toast"></div>
+<canvas id="c" width="300" height="300"></canvas>
+<div class="panel">
+  <div class="stat">🍔 <span id="hv">80</span></div>
+  <div class="stat">😊 <span id="mv">90</span></div>
+  <div class="stat">⚡ <span id="ev">75</span></div>
+  <div class="stat">💰 <span id="cv">0</span></div>
 </div>
-<div class="controls">
-  <button class="feed" onclick="triggerFeed()">🍣 喂食</button>
-  <button class="play" onclick="triggerPlay()">🎾 玩耍</button>
-  <button class="pet" onclick="triggerPet()">✋ 摸摸</button>
+<div class="btns">
+  <button class="btn-feed" onclick="feed()">🍣 喂食</button>
+  <button class="btn-play" onclick="play()">🎾 玩耍</button>
+  <button class="btn-pet" onclick="pet()">✋ 摸摸</button>
 </div>
 
 <script>
-const canvas = document.getElementById('sharkCanvas');
-const ctx = canvas.getContext('2d');
-const bubbleEl = document.getElementById('bubble');
+const c = document.getElementById('c');
+const x = c.getContext('2d');
+const toast = document.getElementById('toast');
 
-let time = 0;
-let state = 'idle';
-let animProgress = 0;
-let animTimer = 0;
-let stateTimer = 0;
-let walkTimer = 0;
-let walkCooldown = 0;
-let bubbles = [];
-let hearts = [];
-let isDragging = false;
+let T = 0, state = 'idle', animP = 0, animT = 0;
+let bubbles = [], hearts = [];
+const S = { hunger: 80, mood: 90, energy: 75, coins: 0 };
 
-const COLORS = {
-  bodyTop: '#5B8FA8', bodyBottom: '#E8F0F2', fin: '#4A7D94',
-  eyeWhite: '#FFFFFF', eyeDark: '#1A1A2E', mouth: '#FF6B6B', teeth: '#FFFFFF'
-};
-
-const stats = { hunger: 80, mood: 90, energy: 75, coins: 0 };
-
-function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-function showBubble(text) {
-  bubbleEl.textContent = text;
-  bubbleEl.classList.remove('show');
-  void bubbleEl.offsetWidth;
-  bubbleEl.classList.add('show');
-  setTimeout(() => bubbleEl.classList.remove('show'), 1500);
+function toastMsg(t) {
+  toast.textContent = t; toast.classList.remove('on');
+  void toast.offsetWidth; toast.classList.add('on');
+  setTimeout(() => toast.classList.remove('on'), 1400);
 }
 
-function triggerFeed() {
-  if (state !== 'sleep' && stats.coins >= 5) {
-    state = 'eat'; animProgress = 0; stateTimer = 0;
-    stats.hunger = clamp(stats.hunger + 30, 0, 100);
-    stats.mood = clamp(stats.mood + 5, 0, 100);
-    stats.coins -= 5;
-    showBubble('🍣');
-  } else if (stats.coins < 5) {
-    showBubble('金币不够！');
+function feed() {
+  if (state === 'sleep') return;
+  if (S.coins < 5) { toastMsg('金币不够！'); return; }
+  S.coins -= 5;
+  S.hunger = Math.min(100, S.hunger + 30);
+  S.mood = Math.min(100, S.mood + 5);
+  state = 'eat'; animP = 0; animT = 0;
+  toastMsg('🍣');
+}
+function play() {
+  if (state === 'sleep') return;
+  S.mood = Math.min(100, S.mood + 15);
+  S.energy = Math.max(0, S.energy - 10);
+  S.coins += 2;
+  state = 'play'; animP = 0; animT = 0;
+  toastMsg('🎾');
+}
+function pet() {
+  S.mood = Math.min(100, S.mood + 5);
+  S.coins += 1;
+  hearts.push({ x: 40, y: -20, life: 1 });
+  toastMsg('❤️');
+}
+c.addEventListener('dblclick', play);
+
+function body() {x.save();const g=x.createLinearGradient(0,-55,0,55);g.addColorStop(0,'#A8D8EA');g.addColorStop(1,'#9FCFE3');x.beginPath();x.ellipse(0,0,65,50,0,0,Math.PI*2);x.fillStyle=g;x.fill();x.restore();}
+function belly() {x.save();x.beginPath();x.ellipse(-6,12,35,22,0,0,Math.PI*2);x.fillStyle='#FFF8F0';x.fill();x.restore();}
+function blush() {x.save();x.fillStyle='rgba(255,150,150,0.5)';x.beginPath();x.ellipse(16,18,9,6,0,0,Math.PI*2);x.fill();x.beginPath();x.ellipse(36,18,9,6,0,0,Math.PI*2);x.fill();x.restore();}
+function eyes(closed) {for(let s of[-1,1]){x.save();x.translate(26,s*12);const bx=Math.sin(T*2.5+s)*1.5;x.fillStyle='#FFF';x.beginPath();x.ellipse(bx,0,14,16,0,0,Math.PI*2);x.fill();if(!closed){const b=Math.sin(T*4+s);if(b>0.95){x.fillStyle='#A8D8EA';x.beginPath();x.ellipse(bx,0,14,3,0,0,Math.PI*2);x.fill()}else{x.fillStyle='#2C1810';x.beginPath();x.ellipse(bx+2,2,8,9,0,0,Math.PI*2);x.fill();x.fillStyle='#FFF';x.beginPath();x.arc(bx+4,-2,3,0,Math.PI*2);x.fill();x.beginPath();x.arc(bx+1,3,1.5,0,Math.PI*2);x.fill()}}else{x.strokeStyle='#2C1810';x.lineWidth=2;x.beginPath();x.moveTo(bx-8,0);x.lineTo(bx+8,0);x.stroke()}x.restore()}}
+function mouth(open) {const h=3+open*9;x.save();x.translate(46,8);x.fillStyle='#FF8A80';x.beginPath();x.ellipse(0,0,6,h,0,0,Math.PI*2);x.fill();if(open>0.35){x.fillStyle='#FFF';for(let i=-1;i<=1;i++){x.beginPath();x.moveTo(i*3-1.5,-h*0.7);x.lineTo(i*3,-h*0.3);x.lineTo(i*3+1.5,-h*0.7);x.closePath();x.fill();x.beginPath();x.moveTo(i*3-1.5,h*0.7);x.lineTo(i*3,h*0.3);x.lineTo(i*3+1.5,h*0.7);x.closePath();x.fill()}}else{x.strokeStyle='#E07060';x.lineWidth=1.5;x.beginPath();x.arc(0,-1,4,0.1*Math.PI,0.9*Math.PI);x.stroke()}x.restore()}
+function dorsalfin() {x.save();x.translate(-30,-45);x.rotate(Math.sin(T*3)*0.08);x.fillStyle='#8FC9DD';x.beginPath();x.moveTo(0,0);x.lineTo(14,-28);x.lineTo(8,0);x.closePath();x.ellipse(5,-14,8,12,0.2,0,Math.PI*2);x.fill();x.restore()}
+function sidefins() {for(let s of[-1,1]){x.save();x.translate(-25,s*38);x.rotate(s*0.7+Math.sin(T*4+s)*0.2);x.fillStyle='#8FC9DD';x.beginPath();x.ellipse(-8,0,14,7,0,0,Math.PI*2);x.fill();x.restore()}}
+function tail() {let sw=Math.sin(T*5)*0.25;if(state==='walk')sw*=1.6;x.save();x.translate(-62,0);x.rotate(sw);x.fillStyle='#8FC9DD';x.beginPath();x.moveTo(0,-8);x.quadraticCurveTo(-15,-28,-28,-26);x.quadraticCurveTo(-15,-10,-8,0);x.closePath();x.fill();x.beginPath();x.moveTo(0,8);x.quadraticCurveTo(-15,28,-28,26);x.quadraticCurveTo(-15,10,-8,0);x.closePath();x.fill();x.restore()}
+function particles() {bubbles=bubbles.filter(b=>b.life>0);for(const b of bubbles){x.save();x.translate(b.x,b.y-(1-b.life)*35);x.beginPath();x.arc(0,0,b.sz*b.life,0,Math.PI*2);x.fillStyle=`rgba(255,255,255,${b.life*0.45})`;x.fill();x.restore();b.life-=0.006}hearts=hearts.filter(h=>h.life>0);for(const h of hearts){x.save();x.translate(h.x,h.y-(1-h.life)*45);x.fillStyle=`rgba(255,140,140,${h.life})`;x.font=`${20*h.life}px Arial`;x.textAlign='center';x.fillText('❤️',0,0);x.restore();h.life-=0.012}}
+
+function draw() {
+  x.clearRect(0,0,300,300);
+  x.save(); x.translate(150,150);
+  let sc=1, rot=0, fy=Math.sin(T*1.8)*5;
+  if(state==='play'){rot=animP*Math.PI*4;sc=1+Math.sin(animP*Math.PI*4)*0.1}
+  else if(state==='eat'){sc=1+Math.sin(animP*Math.PI*3)*0.08}
+  x.translate(0,fy); x.scale(sc,1); x.rotate(rot);
+  body(); belly(); sidefins(); dorsalfin(); tail();
+  blush();
+  const ec=state==='sleep';
+  eyes(ec); mouth(state==='eat'?Math.sin(animP*Math.PI*3)*0.5+0.5:0);
+  particles();
+  x.restore();
+}
+
+function loop() {
+  const dt=0.016; T+=dt;
+  if(state==='eat'||state==='play'){animT+=dt;animP=Math.min(1,animT/1.6);if(animP>=1){state='idle';animT=0;animP=0}}
+  else{
+    S.hunger=Math.max(0,S.hunger-0.4*dt);
+    S.mood=Math.max(0,S.mood-0.2*dt);
+    S.energy=Math.max(0,S.energy-0.12*dt);
+    if(S.energy<20&&state!=='sleep'){state='sleep'}
+    if(state==='sleep'){S.energy=Math.min(100,S.energy+1.5*dt);S.mood=Math.min(100,S.mood+0.8*dt);if(S.energy>80)state='idle'}
+    if(state==='idle'&&Math.random()<0.004){state='walk';setTimeout(()=>{if(state==='walk')state='idle'},4000)}
+    if(state==='idle'&&Math.random()<0.004)bubbles.push({x:50+Math.random()*12-6,y:Math.random()*12-6,sz:4+Math.random()*4,life:1})
   }
+  draw();
+  document.getElementById('hv').textContent=Math.round(S.hunger);
+  document.getElementById('mv').textContent=Math.round(S.mood);
+  document.getElementById('ev').textContent=Math.round(S.energy);
+  document.getElementById('cv').textContent=Math.round(S.coins);
+  requestAnimationFrame(loop);
 }
-
-function triggerPlay() {
-  if (state !== 'sleep') {
-    state = 'play'; animProgress = 0; stateTimer = 0;
-    stats.mood = clamp(stats.mood + 15, 0, 100);
-    stats.energy = clamp(stats.energy - 10, 0, 100);
-    stats.coins += 2;
-    showBubble('🎾');
-  }
-}
-
-function triggerPet() {
-  stats.mood = clamp(stats.mood + 5, 0, 100);
-  stats.coins += 1;
-  hearts.push({ x: 50 + Math.random() * 30 - 15, y: Math.random() * 20 - 10, life: 1 });
-  showBubble('❤️');
-}
-
-canvas.addEventListener('dblclick', triggerPlay);
-
-function drawBody() {
-  ctx.save();
-  const gradient = ctx.createLinearGradient(0, -25, 0, 25);
-  gradient.addColorStop(0, COLORS.bodyTop); gradient.addColorStop(1, COLORS.bodyBottom);
-  ctx.beginPath(); ctx.ellipse(0, 0, 40, 25, 0, 0, Math.PI * 2);
-  ctx.fillStyle = gradient; ctx.fill();
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath(); ctx.arc(i * 12, -8, 2, 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawFins() {
-  ctx.fillStyle = COLORS.fin;
-  // dorsal fin
-  ctx.save(); ctx.translate(-10, -20); ctx.rotate(Math.sin(time * 3) * 0.1);
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, -25); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill();
-  ctx.restore();
-  // bottom fin
-  ctx.save(); ctx.translate(-20, 15); ctx.rotate(Math.sin(time * 4 + 1) * 0.2);
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-15, 10); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill();
-  ctx.restore();
-  // top fin
-  ctx.save(); ctx.translate(-20, -15); ctx.rotate(Math.sin(time * 4 + 2) * 0.2);
-  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-15, -10); ctx.lineTo(-5, -5); ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
-
-function drawTail() {
-  let swing = Math.sin(time * 5) * 0.3;
-  if (state === 'walk') swing *= 1.5;
-  ctx.save(); ctx.translate(-40, 0); ctx.rotate(swing);
-  ctx.fillStyle = COLORS.fin;
-  ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(-25, -30); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-25, 30); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
-
-function drawFace() {
-  let mouthOpen = 0;
-  if (state === 'eat') mouthOpen = Math.sin(animProgress * Math.PI * 3) * 0.5 + 0.5;
-  const eyesClosed = state === 'sleep';
-
-  for (let sign of [-1, 1]) {
-    ctx.save(); ctx.translate(25, sign * 8);
-    ctx.fillStyle = COLORS.eyeWhite; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
-    if (!eyesClosed) {
-      const blink = Math.sin(time * 3 + sign * 0.5);
-      if (blink > 0.95) {
-        ctx.fillStyle = COLORS.bodyTop; ctx.beginPath(); ctx.ellipse(0, 0, 10, 2, 0, 0, Math.PI * 2); ctx.fill();
-      } else {
-        ctx.fillStyle = COLORS.eyeDark; ctx.beginPath(); ctx.arc(3, 0, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = COLORS.eyeWhite; ctx.beginPath(); ctx.arc(5, -2, 2, 0, Math.PI * 2); ctx.fill();
-      }
-    } else {
-      ctx.strokeStyle = COLORS.eyeDark; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(0, 0, 8, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
-      ctx.beginPath(); ctx.arc(0, 0, 8, 1.2 * Math.PI, 1.8 * Math.PI); ctx.stroke();
-    }
-    ctx.restore();
-  }
-
-  const mh = 5 + mouthOpen * 10;
-  ctx.save(); ctx.translate(40, 0);
-  ctx.fillStyle = COLORS.mouth;
-  ctx.beginPath(); ctx.ellipse(0, 0, 8, mh, 0, 0, Math.PI * 2); ctx.fill();
-  if (mouthOpen > 0.3) {
-    ctx.fillStyle = COLORS.teeth;
-    for (let i = -2; i <= 2; i++) {
-      for (let sgn of [-1, 1]) {
-        ctx.beginPath();
-        ctx.moveTo(i * 4 - 2, sgn * mh * 0.8);
-        ctx.lineTo(i * 4, sgn * mh * 0.4);
-        ctx.lineTo(i * 4 + 2, sgn * mh * 0.8);
-        ctx.closePath(); ctx.fill();
-      }
-    }
-  }
-  ctx.restore();
-}
-
-function drawParticles() {
-  bubbles = bubbles.filter(b => b.life > 0);
-  for (const b of bubbles) {
-    ctx.save(); ctx.translate(b.x, b.y - (1 - b.life) * 30);
-    ctx.beginPath(); ctx.arc(0, 0, b.size * b.life, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${b.life * 0.5})`; ctx.fill();
-    ctx.restore();
-    b.life -= 0.005;
-  }
-  hearts = hearts.filter(h => h.life > 0);
-  for (const h of hearts) {
-    ctx.save(); ctx.translate(h.x, h.y - (1 - h.life) * 40);
-    ctx.fillStyle = `rgba(255,107,107,${h.life})`;
-    ctx.font = `${18 * h.life}px Arial`; ctx.textAlign = 'center';
-    ctx.fillText('❤️', 0, 0);
-    ctx.restore();
-    h.life -= 0.01;
-  }
-}
-
-function animate() {
-  const dt = 0.016;
-  time += dt;
-
-  stateTimer += dt;
-
-  if (state === 'eat' || state === 'play') {
-    animTimer += dt;
-    animProgress = Math.min(1, animTimer / 1.5);
-    if (animProgress >= 1) { state = 'idle'; animTimer = 0; animProgress = 0; }
-  }
-
-  if (state !== 'eat' && state !== 'play') {
-    if (stats.energy < 20 && state !== 'sleep') { state = 'sleep'; stateTimer = 0; }
-    if (state === 'sleep') {
-      stats.energy = clamp(stats.energy + 2 * (dt/30), 0, 100);
-      stats.mood = clamp(stats.mood + 1 * (dt/30), 0, 100);
-      if (stats.energy > 80) { state = 'idle'; stateTimer = 0; }
-    }
-
-    stats.hunger = clamp(stats.hunger - 0.5 * dt, 0, 100);
-    stats.mood = clamp(stats.mood - 0.25 * dt, 0, 100);
-    stats.energy = clamp(stats.energy - 0.15 * dt, 0, 100);
-
-    if (state === 'idle') {
-      walkCooldown = Math.max(0, walkCooldown - dt);
-      if (walkCooldown <= 0 && Math.random() < 0.003) { state = 'walk'; stateTimer = 0; walkCooldown = 8; }
-      if (Math.random() < 0.003) bubbles.push({ x: 45 + Math.random() * 10 - 5, y: Math.random() * 10 - 5, size: 4 + Math.random() * 3, life: 1 });
-    } else if (state === 'walk') {
-      if (stateTimer > 6) { state = 'idle'; stateTimer = 0; }
-    }
-  }
-
-  ctx.clearRect(0, 0, 300, 300);
-  ctx.save(); ctx.translate(150, 150);
-
-  let scale = 1, rotation = 0;
-  const floatY = Math.sin(time * 2) * 4;
-  if (state === 'play') { rotation = animProgress * Math.PI * 4; scale = 1 + Math.sin(animProgress * Math.PI * 4) * 0.12; }
-  else if (state === 'eat') { scale = 1 + Math.sin(animProgress * Math.PI * 3) * 0.1; }
-  ctx.translate(0, floatY); ctx.scale(scale, 1); ctx.rotate(rotation);
-
-  drawBody(); drawFins(); drawTail(); drawFace(); drawParticles();
-  ctx.restore();
-
-  document.getElementById('hungerVal').textContent = Math.round(stats.hunger);
-  document.getElementById('moodVal').textContent = Math.round(stats.mood);
-  document.getElementById('energyVal').textContent = Math.round(stats.energy);
-  document.getElementById('coinsVal').textContent = Math.round(stats.coins);
-
-  requestAnimationFrame(animate);
-}
-
-animate();
+loop();
 </script>
 </body>
 </html>
