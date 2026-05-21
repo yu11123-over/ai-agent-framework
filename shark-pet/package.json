@@ -1,0 +1,16 @@
+{
+  "name": "shark-pet",
+  "version": "1.0.0",
+  "description": "A cute desktop shark pet",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": ["electron", "pet", "desktop"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^30.0.0"
+  }
+}
