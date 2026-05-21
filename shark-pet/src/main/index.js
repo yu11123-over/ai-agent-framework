@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
 
@@ -44,22 +44,26 @@ function createWindow() {
     resizable: false,
     focusable: false,
     skipTaskbar: true,
+    hasShadow: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      backgroundThrottling: false
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, '../renderer', 'index.html'));
 
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
+
+  mainWindow.webContents.setIgnoreMenuShortcuts(true);
 }
 
 function createTray() {
-  const trayIconPath = path.join(__dirname, 'assets', 'icon.png');
+  const trayIconPath = path.join(__dirname, '../../assets', 'icon.png');
   tray = new Tray(trayIconPath);
 
   const contextMenu = Menu.buildFromTemplate([
@@ -78,13 +82,21 @@ function createTray() {
     }
   ]);
 
-  tray.setToolTip('鲨鱼桌宠');
+  tray.setToolTip('肥肥鲨 - 桌面宠物');
   tray.setContextMenu(contextMenu);
+
+  tray.on('click', () => {
+    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
+  });
 }
 
 app.whenReady().then(() => {
   createWindow();
   createTray();
+
+  globalShortcut.register('Ctrl+Shift+S', () => {
+    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
+  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -99,10 +111,32 @@ app.on('window-all-closed', () => {
   }
 });
 
+app.on('before-quit', async () => {
+  try {
+    await saveData({
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('Failed to save data:', e);
+  }
+});
+
 ipcMain.handle('save-data', async (event, data) => {
   await saveData(data);
 });
 
 ipcMain.handle('load-data', async () => {
   return await loadData();
+});
+
+ipcMain.handle('get-screen-size', () => {
+  return screen.getPrimaryDisplay().workAreaSize;
+});
+
+ipcMain.handle('set-window-position', (event, x, y) => {
+  mainWindow.setPosition(x, y);
+});
+
+ipcMain.handle('toggle-window', () => {
+  mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
 });

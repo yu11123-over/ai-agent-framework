@@ -1,23 +1,34 @@
 {
   "name": "shark-pet",
   "version": "1.0.0",
-  "description": "A cute desktop shark pet",
-  "main": "main.js",
+  "description": "A cute desktop shark pet companion",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder"
   },
-  "keywords": [
-    "electron",
-    "pet",
-    "desktop"
-  ],
+  "keywords": ["electron", "desktop-pet", "shark", "companion"],
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^30.0.0"
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
   },
-  "dependencies": {
-    "canvas": "^3.2.3"
+  "build": {
+    "appId": "com.sharkpet.app",
+    "productName": "SharkPet",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }
