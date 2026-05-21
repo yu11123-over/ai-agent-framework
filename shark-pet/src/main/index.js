@@ -53,7 +53,7 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile(path.join(__dirname, '../renderer', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -63,7 +63,8 @@ function createWindow() {
 }
 
 function createTray() {
-  const trayIconPath = path.join(__dirname, '../../assets', 'icon.png');
+  const iconName = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  const trayIconPath = path.join(__dirname, 'assets', iconName);
   tray = new Tray(trayIconPath);
 
   const contextMenu = Menu.buildFromTemplate([
@@ -113,9 +114,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', async () => {
   try {
-    await saveData({
-      timestamp: new Date().toISOString()
-    });
+    await saveData({ timestamp: new Date().toISOString() });
   } catch (e) {
     console.error('Failed to save data:', e);
   }
