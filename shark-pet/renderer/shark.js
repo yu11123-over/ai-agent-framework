@@ -19,11 +19,11 @@ export class SharkRenderer {
 
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.save();
-    ctx.translate(100, 100);
+    ctx.translate(100, 170);
 
     let scale = 1;
     let rotation = 0;
-    const floatY = Math.sin(this.time * 1.8) * 5;
+    const floatY = Math.sin(this.time * 1.8) * 4;
 
     if (this.isDragging) {
       scale = 1 + Math.abs(this.dragOffset.x) * 0.002;
@@ -31,7 +31,7 @@ export class SharkRenderer {
       rotation = animProgress * Math.PI * 4;
       scale = 1 + Math.sin(animProgress * Math.PI * 4) * 0.1;
     } else if (state === 'eat') {
-      scale = 1 + Math.sin(animProgress * Math.PI * 3) * 0.08;
+      scale = 1 + Math.sin(animProgress * Math.PI * 3) * 0.06;
     }
 
     ctx.translate(0, floatY);
@@ -40,12 +40,11 @@ export class SharkRenderer {
 
     this.drawShadow();
     this.drawTail();
+    this.drawLegs();
     this.drawBody();
-    this.drawBelly();
-    this.drawGills();
+    this.drawArms();
     this.drawDorsalFin();
-    this.drawSideFins();
-    this.drawBlush();
+    this.drawHead();
     this.drawEyes(state === 'sleep');
     this.drawMouth(state === 'eat' ? Math.sin(animProgress * Math.PI * 3) * 0.5 + 0.5 : 0);
     this.drawParticles();
@@ -55,59 +54,37 @@ export class SharkRenderer {
 
   drawShadow() {
     const ctx = this.ctx;
-    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
     ctx.beginPath();
-    ctx.ellipse(0, 52, 55, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 116, 38, 12, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  drawBody() {
+  drawHead() {
     const ctx = this.ctx;
-    const gradient = ctx.createLinearGradient(0, -58, 0, 58);
+    const gradient = ctx.createLinearGradient(0, -80, 0, 10);
     gradient.addColorStop(0, '#B8E4F0');
     gradient.addColorStop(0.5, '#A8D8EA');
-    gradient.addColorStop(1, '#95C8DB');
-    ctx.beginPath();
-    ctx.moveTo(-60, 0);
-    ctx.bezierCurveTo(-60, -40, -40, -60, -20, -60);
-    ctx.bezierCurveTo(10, -60, 40, -50, 50, -30);
-    ctx.bezierCurveTo(60, -10, 60, 20, 45, 40);
-    ctx.bezierCurveTo(30, 58, 0, 60, -30, 55);
-    ctx.bezierCurveTo(-50, 50, -60, 30, -60, 0);
+    gradient.addColorStop(1, '#9FCFE3');
     ctx.fillStyle = gradient;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(120,190,210,0.4)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
-  drawBelly() {
-    const ctx = this.ctx;
     ctx.beginPath();
-    ctx.ellipse(-2, 18, 30, 18, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFFDF8';
+    ctx.ellipse(0, -36, 48, 44, 0, 0, Math.PI * 2);
     ctx.fill();
-  }
-
-  drawGills() {
-    const ctx = this.ctx;
-    ctx.strokeStyle = 'rgba(120,180,200,0.4)';
+    ctx.strokeStyle = 'rgba(120,190,210,0.35)';
     ctx.lineWidth = 1.5;
-    for (let i = -2; i <= 0; i++) {
-      ctx.beginPath();
-      ctx.arc(-30, i * 6, 6, -0.5, 0.5);
-      ctx.stroke();
-    }
-  }
+    ctx.stroke();
 
-  drawBlush() {
-    const ctx = this.ctx;
-    ctx.fillStyle = 'rgba(255,155,155,0.45)';
+    ctx.fillStyle = 'rgba(255,155,155,0.4)';
     ctx.beginPath();
-    ctx.ellipse(12, 14, 10, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(10, -24, 12, 7, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(34, 14, 10, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(34, -24, 12, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.ellipse(50, -30, 16, 14, 0.1, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -115,12 +92,12 @@ export class SharkRenderer {
     const ctx = this.ctx;
     for (const sign of [-1, 1]) {
       ctx.save();
-      ctx.translate(23, sign * 10);
+      ctx.translate(22, sign * 10 - 32);
       const bx = Math.sin(this.time * 2.5 + sign) * 1.5;
 
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.ellipse(bx, 0, 16, 18, 0, 0, Math.PI * 2);
+      ctx.ellipse(bx, 0, 16, 19, 0, 0, Math.PI * 2);
       ctx.fill();
 
       if (!closed) {
@@ -131,10 +108,10 @@ export class SharkRenderer {
           ctx.ellipse(bx, 0, 16, 3, 0, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.strokeStyle = 'rgba(100,150,170,0.3)';
+          ctx.strokeStyle = 'rgba(100,150,170,0.25)';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(bx, -11, 14, Math.PI, 0);
+          ctx.arc(bx, -12, 14, Math.PI, 0);
           ctx.stroke();
 
           ctx.fillStyle = '#3D2B1F';
@@ -147,7 +124,7 @@ export class SharkRenderer {
           ctx.arc(bx + 4, -3, 4, 0, Math.PI * 2);
           ctx.fill();
           ctx.beginPath();
-          ctx.arc(bx, 4, 2, 0, Math.PI * 2);
+          ctx.arc(bx, 5, 2, 0, Math.PI * 2);
           ctx.fill();
           ctx.beginPath();
           ctx.arc(bx + 7, 0, 1.2, 0, Math.PI * 2);
@@ -169,7 +146,7 @@ export class SharkRenderer {
     const mouthHeight = 3 + open * 9;
 
     ctx.save();
-    ctx.translate(44, 6);
+    ctx.translate(52, -28);
 
     if (open > 0.35) {
       ctx.fillStyle = '#FF8A80';
@@ -178,18 +155,14 @@ export class SharkRenderer {
       ctx.fill();
       ctx.fillStyle = '#FFFFFF';
       for (let i = -1; i <= 1; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * 3 - 1.5, -mouthHeight * 0.7);
-        ctx.lineTo(i * 3, -mouthHeight * 0.3);
-        ctx.lineTo(i * 3 + 1.5, -mouthHeight * 0.7);
-        ctx.closePath();
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(i * 3 - 1.5, mouthHeight * 0.7);
-        ctx.lineTo(i * 3, mouthHeight * 0.3);
-        ctx.lineTo(i * 3 + 1.5, mouthHeight * 0.7);
-        ctx.closePath();
-        ctx.fill();
+        for (const sign of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(i * 3 - 1.5, sign * mouthHeight * 0.7);
+          ctx.lineTo(i * 3, sign * mouthHeight * 0.3);
+          ctx.lineTo(i * 3 + 1.5, sign * mouthHeight * 0.7);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
     } else {
       ctx.strokeStyle = '#E07060';
@@ -205,51 +178,104 @@ export class SharkRenderer {
   drawDorsalFin() {
     const ctx = this.ctx;
     ctx.save();
-    ctx.translate(-15, -52);
-    ctx.rotate(Math.sin(this.time * 3) * 0.06);
-    ctx.fillStyle = '#B5DEEE';
+    ctx.translate(-5, -8);
+    ctx.rotate(Math.sin(this.time * 3) * 0.05);
+    ctx.fillStyle = '#A8DFF0';
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(8, -22, 12, -20);
-    ctx.quadraticCurveTo(10, -10, 6, 0);
+    ctx.quadraticCurveTo(10, -18, 14, -16);
+    ctx.quadraticCurveTo(8, -8, 4, 0);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
 
-  drawSideFins() {
+  drawBody() {
+    const ctx = this.ctx;
+    const gradient = ctx.createLinearGradient(0, 10, 0, 90);
+    gradient.addColorStop(0, '#B8E4F0');
+    gradient.addColorStop(0.5, '#A8DFF0');
+    gradient.addColorStop(1, '#95C8DB');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.ellipse(0, 50, 28, 36, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFDF8';
+    ctx.beginPath();
+    ctx.ellipse(-2, 54, 16, 20, 0.05, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawArms() {
     const ctx = this.ctx;
     for (const sign of [-1, 1]) {
       ctx.save();
-      ctx.translate(-24, sign * 40);
-      ctx.rotate(sign * 0.7 + Math.sin(this.time * 4 + sign) * 0.15);
-      ctx.fillStyle = '#B5DEEE';
+      ctx.translate(sign * 30, 44);
+
+      if (this.state === 'walk') {
+        ctx.rotate(sign * -0.3 + Math.sin(this.time * 8 + sign) * 0.2);
+      } else if (this.state === 'play') {
+        ctx.rotate(sign * -0.6 + this.animProgress * 2);
+      }
+
+      ctx.fillStyle = '#A8DFF0';
       ctx.beginPath();
-      ctx.ellipse(-7, 0, 16, 8, 0, 0, Math.PI * 2);
+      ctx.ellipse(sign * 4, -4, 8, 14, -sign * 0.15, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.fillStyle = '#85B8CC';
+      ctx.beginPath();
+      ctx.arc(sign * 10, -18, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+  }
+
+  drawLegs() {
+    const ctx = this.ctx;
+    for (const sign of [-1, 1]) {
+      ctx.save();
+      ctx.translate(sign * 14, 86);
+
+      if (this.state === 'walk') {
+        ctx.rotate(sign * Math.sin(this.time * 8) * 0.15);
+      }
+
+      ctx.fillStyle = '#95C8DB';
+      ctx.beginPath();
+      ctx.ellipse(0, 10, 8, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#85B8CC';
+      ctx.beginPath();
+      ctx.ellipse(sign * 3, 24, 10, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.restore();
     }
   }
 
   drawTail() {
     const ctx = this.ctx;
-    let swing = Math.sin(this.time * 5) * 0.25;
-    if (this.state === 'walk') swing *= 1.6;
+    let swing = Math.sin(this.time * 5) * 0.2;
+    if (this.state === 'walk') swing *= 1.4;
 
     ctx.save();
-    ctx.translate(-64, 0);
+    ctx.translate(-10, 52);
     ctx.rotate(swing);
-    ctx.fillStyle = '#B5DEEE';
+    ctx.fillStyle = '#A8DFF0';
     ctx.beginPath();
-    ctx.moveTo(0, -6);
-    ctx.quadraticCurveTo(-12, -28, -26, -26);
-    ctx.quadraticCurveTo(-14, -8, -6, 0);
+    ctx.moveTo(0, -4);
+    ctx.quadraticCurveTo(-10, -26, -22, -24);
+    ctx.quadraticCurveTo(-12, -6, -4, 0);
     ctx.closePath();
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(0, 6);
-    ctx.quadraticCurveTo(-12, 28, -26, 26);
-    ctx.quadraticCurveTo(-14, 8, -6, 0);
+    ctx.moveTo(0, 4);
+    ctx.quadraticCurveTo(-10, 26, -22, 24);
+    ctx.quadraticCurveTo(-12, 6, -4, 0);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -257,8 +283,8 @@ export class SharkRenderer {
 
   spawnBubble() {
     this.bubbles.push({
-      x: 52 + Math.random() * 10 - 5,
-      y: Math.random() * 10 - 5,
+      x: 56 + Math.random() * 10 - 5,
+      y: -32 + Math.random() * 10 - 5,
       sz: 4 + Math.random() * 4,
       life: 1
     });
@@ -286,7 +312,7 @@ export class SharkRenderer {
     this.heartParticles = this.heartParticles.filter(h => h.life > 0);
     for (const heart of this.heartParticles) {
       ctx.save();
-      ctx.translate(50, -30 - (1 - heart.life) * 45);
+      ctx.translate(50, -60 - (1 - heart.life) * 45);
       ctx.fillStyle = `rgba(255,140,140,${heart.life})`;
       ctx.font = `${22 * heart.life}px Arial`;
       ctx.textAlign = 'center';
