@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>鲨鱼桌宠 - 预览测试</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1a2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: system-ui, sans-serif;
+  overflow: hidden;
+}
+canvas { border-radius: 16px; }
+.stats-panel {
+  display: flex; gap: 16px; margin-top: 12px;
+  background: rgba(255,255,255,0.08); padding: 12px 20px; border-radius: 12px;
+}
+.stat { color: #ccc; font-size: 14px; }
+.stat span { color: #fff; font-weight: bold; }
+.controls { display: flex; gap: 10px; margin-top: 12px; }
+button {
+  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 14px; background: rgba(255,255,255,0.1); color: #fff; transition: .2s;
+}
+button:hover { background: rgba(255,255,255,0.2); }
+button.feed { background: #FF6B6B; }
+button.play { background: #4ECDC4; }
+button.pet { background: #FFE66D; color: #333; }
+.bubble-overlay {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: white; padding: 10px 18px; border-radius: 20px; font-size: 24px;
+  pointer-events: none; opacity: 0; transition: opacity 0.3s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.bubble-overlay.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="bubble-overlay" id="bubble"></div>
+<canvas id="sharkCanvas" width="300" height="300"></canvas>
+<div class="stats-panel">
+  <div class="stat">🍔 饥饿: <span id="hungerVal">80</span></div>
+  <div class="stat">😊 心情: <span id="moodVal">90</span></div>
+  <div class="stat">⚡ 体力: <span id="energyVal">75</span></div>
+  <div class="stat">💰 金币: <span id="coinsVal">0</span></div>
+</div>
+<div class="controls">
+  <button class="feed" onclick="triggerFeed()">🍣 喂食</button>
+  <button class="play" onclick="triggerPlay()">🎾 玩耍</button>
+  <button class="pet" onclick="triggerPet()">✋ 摸摸</button>
+</div>
+
+<script>
+const canvas = document.getElementById('sharkCanvas');
+const ctx = canvas.getContext('2d');
+const bubbleEl = document.getElementById('bubble');
+
+let time = 0;
+let state = 'idle';
+let animProgress = 0;
+let animTimer = 0;
+let stateTimer = 0;
+let walkTimer = 0;
+let walkCooldown = 0;
+let bubbles = [];
+let hearts = [];
+let isDragging = false;
+
+const COLORS = {
+  bodyTop: '#5B8FA8', bodyBottom: '#E8F0F2', fin: '#4A7D94',
+  eyeWhite: '#FFFFFF', eyeDark: '#1A1A2E', mouth: '#FF6B6B', teeth: '#FFFFFF'
+};
+
+const stats = { hunger: 80, mood: 90, energy: 75, coins: 0 };
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function showBubble(text) {
+  bubbleEl.textContent = text;
+  bubbleEl.classList.remove('show');
+  void bubbleEl.offsetWidth;
+  bubbleEl.classList.add('show');
+  setTimeout(() => bubbleEl.classList.remove('show'), 1500);
+}
+
+function triggerFeed() {
+  if (state !== 'sleep' && stats.coins >= 5) {
+    state = 'eat'; animProgress = 0; stateTimer = 0;
+    stats.hunger = clamp(stats.hunger + 30, 0, 100);
+    stats.mood = clamp(stats.mood + 5, 0, 100);
+    stats.coins -= 5;
+    showBubble('🍣');
+  } else if (stats.coins < 5) {
+    showBubble('金币不够！');
+  }
+}
+
+function triggerPlay() {
+  if (state !== 'sleep') {
+    state = 'play'; animProgress = 0; stateTimer = 0;
+    stats.mood = clamp(stats.mood + 15, 0, 100);
+    stats.energy = clamp(stats.energy - 10, 0, 100);
+    stats.coins += 2;
+    showBubble('🎾');
+  }
+}
+
+function triggerPet() {
+  stats.mood = clamp(stats.mood + 5, 0, 100);
+  stats.coins += 1;
+  hearts.push({ x: 50 + Math.random() * 30 - 15, y: Math.random() * 20 - 10, life: 1 });
+  showBubble('❤️');
+}
+
+canvas.addEventListener('dblclick', triggerPlay);
+
+function drawBody() {
+  ctx.save();
+  const gradient = ctx.createLinearGradient(0, -25, 0, 25);
+  gradient.addColorStop(0, COLORS.bodyTop); gradient.addColorStop(1, COLORS.bodyBottom);
+  ctx.beginPath(); ctx.ellipse(0, 0, 40, 25, 0, 0, Math.PI * 2);
+  ctx.fillStyle = gradient; ctx.fill();
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath(); ctx.arc(i * 12, -8, 2, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawFins() {
+  ctx.fillStyle = COLORS.fin;
+  // dorsal fin
+  ctx.save(); ctx.translate(-10, -20); ctx.rotate(Math.sin(time * 3) * 0.1);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, -25); ctx.lineTo(5, -5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // bottom fin
+  ctx.save(); ctx.translate(-20, 15); ctx.rotate(Math.sin(time * 4 + 1) * 0.2);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-15, 10); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // top fin
+  ctx.save(); ctx.translate(-20, -15); ctx.rotate(Math.sin(time * 4 + 2) * 0.2);
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-15, -10); ctx.lineTo(-5, -5); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawTail() {
+  let swing = Math.sin(time * 5) * 0.3;
+  if (state === 'walk') swing *= 1.5;
+  ctx.save(); ctx.translate(-40, 0); ctx.rotate(swing);
+  ctx.fillStyle = COLORS.fin;
+  ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(-25, -30); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, 15); ctx.lineTo(-25, 30); ctx.lineTo(-10, 0); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawFace() {
+  let mouthOpen = 0;
+  if (state === 'eat') mouthOpen = Math.sin(animProgress * Math.PI * 3) * 0.5 + 0.5;
+  const eyesClosed = state === 'sleep';
+
+  for (let sign of [-1, 1]) {
+    ctx.save(); ctx.translate(25, sign * 8);
+    ctx.fillStyle = COLORS.eyeWhite; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+    if (!eyesClosed) {
+      const blink = Math.sin(time * 3 + sign * 0.5);
+      if (blink > 0.95) {
+        ctx.fillStyle = COLORS.bodyTop; ctx.beginPath(); ctx.ellipse(0, 0, 10, 2, 0, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.fillStyle = COLORS.eyeDark; ctx.beginPath(); ctx.arc(3, 0, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = COLORS.eyeWhite; ctx.beginPath(); ctx.arc(5, -2, 2, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      ctx.strokeStyle = COLORS.eyeDark; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, 8, 1.2 * Math.PI, 1.8 * Math.PI); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const mh = 5 + mouthOpen * 10;
+  ctx.save(); ctx.translate(40, 0);
+  ctx.fillStyle = COLORS.mouth;
+  ctx.beginPath(); ctx.ellipse(0, 0, 8, mh, 0, 0, Math.PI * 2); ctx.fill();
+  if (mouthOpen > 0.3) {
+    ctx.fillStyle = COLORS.teeth;
+    for (let i = -2; i <= 2; i++) {
+      for (let sgn of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(i * 4 - 2, sgn * mh * 0.8);
+        ctx.lineTo(i * 4, sgn * mh * 0.4);
+        ctx.lineTo(i * 4 + 2, sgn * mh * 0.8);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+function drawParticles() {
+  bubbles = bubbles.filter(b => b.life > 0);
+  for (const b of bubbles) {
+    ctx.save(); ctx.translate(b.x, b.y - (1 - b.life) * 30);
+    ctx.beginPath(); ctx.arc(0, 0, b.size * b.life, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${b.life * 0.5})`; ctx.fill();
+    ctx.restore();
+    b.life -= 0.005;
+  }
+  hearts = hearts.filter(h => h.life > 0);
+  for (const h of hearts) {
+    ctx.save(); ctx.translate(h.x, h.y - (1 - h.life) * 40);
+    ctx.fillStyle = `rgba(255,107,107,${h.life})`;
+    ctx.font = `${18 * h.life}px Arial`; ctx.textAlign = 'center';
+    ctx.fillText('❤️', 0, 0);
+    ctx.restore();
+    h.life -= 0.01;
+  }
+}
+
+function animate() {
+  const dt = 0.016;
+  time += dt;
+
+  stateTimer += dt;
+
+  if (state === 'eat' || state === 'play') {
+    animTimer += dt;
+    animProgress = Math.min(1, animTimer / 1.5);
+    if (animProgress >= 1) { state = 'idle'; animTimer = 0; animProgress = 0; }
+  }
+
+  if (state !== 'eat' && state !== 'play') {
+    if (stats.energy < 20 && state !== 'sleep') { state = 'sleep'; stateTimer = 0; }
+    if (state === 'sleep') {
+      stats.energy = clamp(stats.energy + 2 * (dt/30), 0, 100);
+      stats.mood = clamp(stats.mood + 1 * (dt/30), 0, 100);
+      if (stats.energy > 80) { state = 'idle'; stateTimer = 0; }
+    }
+
+    stats.hunger = clamp(stats.hunger - 0.5 * dt, 0, 100);
+    stats.mood = clamp(stats.mood - 0.25 * dt, 0, 100);
+    stats.energy = clamp(stats.energy - 0.15 * dt, 0, 100);
+
+    if (state === 'idle') {
+      walkCooldown = Math.max(0, walkCooldown - dt);
+      if (walkCooldown <= 0 && Math.random() < 0.003) { state = 'walk'; stateTimer = 0; walkCooldown = 8; }
+      if (Math.random() < 0.003) bubbles.push({ x: 45 + Math.random() * 10 - 5, y: Math.random() * 10 - 5, size: 4 + Math.random() * 3, life: 1 });
+    } else if (state === 'walk') {
+      if (stateTimer > 6) { state = 'idle'; stateTimer = 0; }
+    }
+  }
+
+  ctx.clearRect(0, 0, 300, 300);
+  ctx.save(); ctx.translate(150, 150);
+
+  let scale = 1, rotation = 0;
+  const floatY = Math.sin(time * 2) * 4;
+  if (state === 'play') { rotation = animProgress * Math.PI * 4; scale = 1 + Math.sin(animProgress * Math.PI * 4) * 0.12; }
+  else if (state === 'eat') { scale = 1 + Math.sin(animProgress * Math.PI * 3) * 0.1; }
+  ctx.translate(0, floatY); ctx.scale(scale, 1); ctx.rotate(rotation);
+
+  drawBody(); drawFins(); drawTail(); drawFace(); drawParticles();
+  ctx.restore();
+
+  document.getElementById('hungerVal').textContent = Math.round(stats.hunger);
+  document.getElementById('moodVal').textContent = Math.round(stats.mood);
+  document.getElementById('energyVal').textContent = Math.round(stats.energy);
+  document.getElementById('coinsVal').textContent = Math.round(stats.coins);
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

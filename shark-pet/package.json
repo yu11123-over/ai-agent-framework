@@ -7,10 +7,17 @@
     "start": "electron .",
     "dev": "electron . --dev"
   },
-  "keywords": ["electron", "pet", "desktop"],
+  "keywords": [
+    "electron",
+    "pet",
+    "desktop"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "electron": "^30.0.0"
+  },
+  "dependencies": {
+    "canvas": "^3.2.3"
   }
 }
