@@ -12,30 +12,23 @@ body {
   min-height: 100vh; font-family: system-ui, sans-serif; overflow: hidden;
 }
 canvas { border-radius: 24px; }
-.panel {
-  display: flex; gap: 16px; margin-top: 16px;
-  background: rgba(255,255,255,0.06); padding: 14px 24px; border-radius: 14px;
-}
+.panel { display: flex; gap: 16px; margin-top: 16px;
+  background: rgba(255,255,255,0.06); padding: 14px 24px; border-radius: 14px; }
 .stat { color: #888; font-size: 15px; }
 .stat span { color: #fff; font-weight: 700; }
 .btns { display: flex; gap: 12px; margin-top: 14px; }
-button {
-  padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
-  font-size: 15px; font-weight: 600; transition: all 0.2s;
-}
+button { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600; transition: all 0.2s; }
 button:hover { transform: scale(1.06); }
 button:active { transform: scale(0.96); }
 .btn-feed { background: #FF6B6B; color: #fff; }
 .btn-play { background: #45B7D1; color: #fff; }
 .btn-pet { background: #FFD93D; color: #333; }
-.toast {
-  position: fixed; top: 50%; left: 50%;
+.toast { position: fixed; top: 50%; left: 50%;
   transform: translate(-50%,-50%);
   background: #fff; padding: 12px 22px; border-radius: 24px;
   font-size: 28px; pointer-events: none; opacity: 0;
-  transition: opacity 0.25s; box-shadow: 0 6px 24px rgba(0,0,0,0.3);
-  z-index: 10;
-}
+  transition: opacity 0.25s; box-shadow: 0 6px 24px rgba(0,0,0,0.3); z-index: 10; }
 .toast.on { opacity: 1; }
 </style>
 </head>
@@ -62,80 +55,196 @@ const toast = document.getElementById('toast');
 let T = 0, state = 'idle', animP = 0, animT = 0;
 let bubbles = [], hearts = [];
 const S = { hunger: 80, mood: 90, energy: 75, coins: 0 };
+const sleepTimer = 0;
 
 function toastMsg(t) {
   toast.textContent = t; toast.classList.remove('on');
   void toast.offsetWidth; toast.classList.add('on');
   setTimeout(() => toast.classList.remove('on'), 1400);
 }
-
 function feed() {
   if (state === 'sleep') return;
   if (S.coins < 5) { toastMsg('金币不够！'); return; }
-  S.coins -= 5;
-  S.hunger = Math.min(100, S.hunger + 30);
-  S.mood = Math.min(100, S.mood + 5);
-  state = 'eat'; animP = 0; animT = 0;
-  toastMsg('🍣');
+  S.coins -= 5; S.hunger = Math.min(100, S.hunger + 30); S.mood = Math.min(100, S.mood + 5);
+  state = 'eat'; animP = 0; animT = 0; toastMsg('🍣');
 }
 function play() {
   if (state === 'sleep') return;
-  S.mood = Math.min(100, S.mood + 15);
-  S.energy = Math.max(0, S.energy - 10);
-  S.coins += 2;
-  state = 'play'; animP = 0; animT = 0;
-  toastMsg('🎾');
+  S.mood = Math.min(100, S.mood + 15); S.energy = Math.max(0, S.energy - 10); S.coins += 2;
+  state = 'play'; animP = 0; animT = 0; toastMsg('🎾');
 }
 function pet() {
-  S.mood = Math.min(100, S.mood + 5);
-  S.coins += 1;
-  hearts.push({ x: 40, y: -20, life: 1 });
-  toastMsg('❤️');
+  S.mood = Math.min(100, S.mood + 5); S.coins += 1;
+  hearts.push({ life: 1 }); toastMsg('❤️');
 }
 c.addEventListener('dblclick', play);
 
-function body() {x.save();const g=x.createLinearGradient(0,-55,0,55);g.addColorStop(0,'#A8D8EA');g.addColorStop(1,'#9FCFE3');x.beginPath();x.ellipse(0,0,65,50,0,0,Math.PI*2);x.fillStyle=g;x.fill();x.restore();}
-function belly() {x.save();x.beginPath();x.ellipse(-6,12,35,22,0,0,Math.PI*2);x.fillStyle='#FFF8F0';x.fill();x.restore();}
-function blush() {x.save();x.fillStyle='rgba(255,150,150,0.5)';x.beginPath();x.ellipse(16,18,9,6,0,0,Math.PI*2);x.fill();x.beginPath();x.ellipse(36,18,9,6,0,0,Math.PI*2);x.fill();x.restore();}
-function eyes(closed) {for(let s of[-1,1]){x.save();x.translate(26,s*12);const bx=Math.sin(T*2.5+s)*1.5;x.fillStyle='#FFF';x.beginPath();x.ellipse(bx,0,14,16,0,0,Math.PI*2);x.fill();if(!closed){const b=Math.sin(T*4+s);if(b>0.95){x.fillStyle='#A8D8EA';x.beginPath();x.ellipse(bx,0,14,3,0,0,Math.PI*2);x.fill()}else{x.fillStyle='#2C1810';x.beginPath();x.ellipse(bx+2,2,8,9,0,0,Math.PI*2);x.fill();x.fillStyle='#FFF';x.beginPath();x.arc(bx+4,-2,3,0,Math.PI*2);x.fill();x.beginPath();x.arc(bx+1,3,1.5,0,Math.PI*2);x.fill()}}else{x.strokeStyle='#2C1810';x.lineWidth=2;x.beginPath();x.moveTo(bx-8,0);x.lineTo(bx+8,0);x.stroke()}x.restore()}}
-function mouth(open) {const h=3+open*9;x.save();x.translate(46,8);x.fillStyle='#FF8A80';x.beginPath();x.ellipse(0,0,6,h,0,0,Math.PI*2);x.fill();if(open>0.35){x.fillStyle='#FFF';for(let i=-1;i<=1;i++){x.beginPath();x.moveTo(i*3-1.5,-h*0.7);x.lineTo(i*3,-h*0.3);x.lineTo(i*3+1.5,-h*0.7);x.closePath();x.fill();x.beginPath();x.moveTo(i*3-1.5,h*0.7);x.lineTo(i*3,h*0.3);x.lineTo(i*3+1.5,h*0.7);x.closePath();x.fill()}}else{x.strokeStyle='#E07060';x.lineWidth=1.5;x.beginPath();x.arc(0,-1,4,0.1*Math.PI,0.9*Math.PI);x.stroke()}x.restore()}
-function dorsalfin() {x.save();x.translate(-30,-45);x.rotate(Math.sin(T*3)*0.08);x.fillStyle='#8FC9DD';x.beginPath();x.moveTo(0,0);x.lineTo(14,-28);x.lineTo(8,0);x.closePath();x.ellipse(5,-14,8,12,0.2,0,Math.PI*2);x.fill();x.restore()}
-function sidefins() {for(let s of[-1,1]){x.save();x.translate(-25,s*38);x.rotate(s*0.7+Math.sin(T*4+s)*0.2);x.fillStyle='#8FC9DD';x.beginPath();x.ellipse(-8,0,14,7,0,0,Math.PI*2);x.fill();x.restore()}}
-function tail() {let sw=Math.sin(T*5)*0.25;if(state==='walk')sw*=1.6;x.save();x.translate(-62,0);x.rotate(sw);x.fillStyle='#8FC9DD';x.beginPath();x.moveTo(0,-8);x.quadraticCurveTo(-15,-28,-28,-26);x.quadraticCurveTo(-15,-10,-8,0);x.closePath();x.fill();x.beginPath();x.moveTo(0,8);x.quadraticCurveTo(-15,28,-28,26);x.quadraticCurveTo(-15,10,-8,0);x.closePath();x.fill();x.restore()}
-function particles() {bubbles=bubbles.filter(b=>b.life>0);for(const b of bubbles){x.save();x.translate(b.x,b.y-(1-b.life)*35);x.beginPath();x.arc(0,0,b.sz*b.life,0,Math.PI*2);x.fillStyle=`rgba(255,255,255,${b.life*0.45})`;x.fill();x.restore();b.life-=0.006}hearts=hearts.filter(h=>h.life>0);for(const h of hearts){x.save();x.translate(h.x,h.y-(1-h.life)*45);x.fillStyle=`rgba(255,140,140,${h.life})`;x.font=`${20*h.life}px Arial`;x.textAlign='center';x.fillText('❤️',0,0);x.restore();h.life-=0.012}}
-
 function draw() {
-  x.clearRect(0,0,300,300);
-  x.save(); x.translate(150,150);
-  let sc=1, rot=0, fy=Math.sin(T*1.8)*5;
-  if(state==='play'){rot=animP*Math.PI*4;sc=1+Math.sin(animP*Math.PI*4)*0.1}
-  else if(state==='eat'){sc=1+Math.sin(animP*Math.PI*3)*0.08}
-  x.translate(0,fy); x.scale(sc,1); x.rotate(rot);
-  body(); belly(); sidefins(); dorsalfin(); tail();
-  blush();
-  const ec=state==='sleep';
-  eyes(ec); mouth(state==='eat'?Math.sin(animP*Math.PI*3)*0.5+0.5:0);
-  particles();
+  x.clearRect(0, 0, 300, 300);
+  x.save(); x.translate(150, 150);
+  let sc = 1, rot = 0, fy = Math.sin(T * 1.8) * 5;
+  if (state === 'play') { rot = animP * Math.PI * 4; sc = 1 + Math.sin(animP * Math.PI * 4) * 0.1; }
+  else if (state === 'eat') { sc = 1 + Math.sin(animP * Math.PI * 3) * 0.08; }
+  x.translate(0, fy); x.scale(sc, 1); x.rotate(rot);
+
+  // === SHADOW ===
+  x.save(); x.fillStyle = 'rgba(0,0,0,0.08)'; x.beginPath();
+  x.ellipse(0, 52, 55, 10, 0, 0, Math.PI * 2); x.fill(); x.restore();
+
+  // === TAIL ===
+  let tsw = Math.sin(T * 5) * 0.25; if (state === 'walk') tsw *= 1.6;
+  x.save(); x.translate(-64, 0); x.rotate(tsw);
+  x.fillStyle = '#B5DEEE';
+  x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(-12, -28, -26, -26);
+  x.quadraticCurveTo(-14, -8, -6, 0); x.closePath(); x.fill();
+  x.beginPath(); x.moveTo(0, 6); x.quadraticCurveTo(-12, 28, -26, 26);
+  x.quadraticCurveTo(-14, 8, -6, 0); x.closePath(); x.fill();
+  x.restore();
+
+  // === BODY — round blob ===
+  const g = x.createLinearGradient(0, -58, 0, 58);
+  g.addColorStop(0, '#B8E4F0'); g.addColorStop(0.5, '#A8D8EA'); g.addColorStop(1, '#95C8DB');
+  x.beginPath();
+  x.moveTo(-60, 0);
+  x.bezierCurveTo(-60, -40, -40, -60, -20, -60);
+  x.bezierCurveTo(10, -60, 40, -50, 50, -30);
+  x.bezierCurveTo(60, -10, 60, 20, 45, 40);
+  x.bezierCurveTo(30, 58, 0, 60, -30, 55);
+  x.bezierCurveTo(-50, 50, -60, 30, -60, 0);
+  x.fillStyle = g; x.fill();
+
+  // Body outline
+  x.strokeStyle = 'rgba(120,190,210,0.4)'; x.lineWidth = 2; x.stroke();
+
+  // === BELLY ===
+  x.beginPath(); x.ellipse(-2, 18, 30, 18, 0, 0, Math.PI * 2);
+  x.fillStyle = '#FFFDF8'; x.fill();
+
+  // === GILLS ===
+  x.strokeStyle = 'rgba(120,180,200,0.4)'; x.lineWidth = 1.5;
+  for (let i = -2; i <= 0; i++) { x.beginPath(); x.arc(-30, i * 6, 6, -0.5, 0.5); x.stroke(); }
+
+  // === DORSAL FIN ===
+  x.save(); x.translate(-15, -52); x.rotate(Math.sin(T * 3) * 0.06);
+  x.fillStyle = '#B5DEEE';
+  x.beginPath(); x.moveTo(0, 0); x.quadraticCurveTo(8, -22, 12, -20);
+  x.quadraticCurveTo(10, -10, 6, 0); x.closePath(); x.fill();
+  x.restore();
+
+  // === SIDE FINS ===
+  for (let s of [-1, 1]) {
+    x.save(); x.translate(-24, s * 40); x.rotate(s * 0.7 + Math.sin(T * 4 + s) * 0.15);
+    x.fillStyle = '#B5DEEE';
+    x.beginPath(); x.ellipse(-7, 0, 16, 8, 0, 0, Math.PI * 2); x.fill();
+    x.restore();
+  }
+
+  // === BLUSH ===
+  x.fillStyle = 'rgba(255,155,155,0.45)';
+  x.beginPath(); x.ellipse(12, 14, 10, 7, 0, 0, Math.PI * 2); x.fill();
+  x.beginPath(); x.ellipse(34, 14, 10, 7, 0, 0, Math.PI * 2); x.fill();
+
+  // === EYES (MASSIVE sparkly anime eyes) ===
+  const sleepeye = state === 'sleep';
+  for (let s of [-1, 1]) {
+    x.save(); x.translate(23, s * 10);
+    const bx = Math.sin(T * 2.5 + s) * 1.5;
+
+    // Eye white (big!)
+    x.fillStyle = '#FFF';
+    x.beginPath(); x.ellipse(bx, 0, 16, 18, 0, 0, Math.PI * 2); x.fill();
+
+    if (!sleepeye) {
+      const blink = Math.sin(T * 4 + s);
+      if (blink > 0.95) {
+        x.fillStyle = '#B8E4F0';
+        x.beginPath(); x.ellipse(bx, 0, 16, 3, 0, 0, Math.PI * 2); x.fill();
+      } else {
+        // Eye shadow line above
+        x.strokeStyle = 'rgba(100,150,170,0.3)'; x.lineWidth = 2;
+        x.beginPath(); x.arc(bx, -11, 14, Math.PI, 0); x.stroke();
+
+        // Iris — big and warm dark brown
+        x.fillStyle = '#3D2B1F';
+        x.beginPath(); x.ellipse(bx + 2, 2, 9, 10, 0, 0, Math.PI * 2); x.fill();
+
+        // Main catchlight
+        x.fillStyle = '#FFF';
+        x.beginPath(); x.arc(bx + 4, -3, 4, 0, Math.PI * 2); x.fill();
+        // Secondary catchlight
+        x.beginPath(); x.arc(bx, 4, 2, 0, Math.PI * 2); x.fill();
+        // Tiny sparkle
+        x.beginPath(); x.arc(bx + 7, 0, 1.2, 0, Math.PI * 2); x.fill();
+      }
+    } else {
+      // Sleep — curved line
+      x.strokeStyle = '#3D2B1F'; x.lineWidth = 2.2;
+      x.beginPath(); x.arc(bx, -3, 9, 0.3 * Math.PI, 0.7 * Math.PI); x.stroke();
+    }
+    x.restore();
+  }
+
+  // === MOUTH ===
+  const mOpen = state === 'eat' ? Math.sin(animP * Math.PI * 3) * 0.5 + 0.5 : 0;
+  const mh = 3 + mOpen * 10;
+  x.save(); x.translate(44, 6);
+  if (mOpen > 0.35) {
+    x.fillStyle = '#FF8A80';
+    x.beginPath(); x.ellipse(0, 0, 7, mh, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#FFF';
+    for (let i = -1; i <= 1; i++) {
+      x.beginPath(); x.moveTo(i * 3 - 1.5, -mh * 0.7); x.lineTo(i * 3, -mh * 0.3);
+      x.lineTo(i * 3 + 1.5, -mh * 0.7); x.closePath(); x.fill();
+      x.beginPath(); x.moveTo(i * 3 - 1.5, mh * 0.7); x.lineTo(i * 3, mh * 0.3);
+      x.lineTo(i * 3 + 1.5, mh * 0.7); x.closePath(); x.fill();
+    }
+  } else {
+    // :3 mouth — cute tiny curve
+    x.strokeStyle = '#E07060'; x.lineWidth = 1.8; x.lineCap = 'round';
+    x.beginPath(); x.arc(0, -2, 5, 0.2 * Math.PI, 0.8 * Math.PI); x.stroke();
+  }
+  x.restore();
+
+  // === PARTICLES ===
+  bubbles = bubbles.filter(b => b.life > 0);
+  for (const b of bubbles) {
+    x.save(); x.translate(b.x, b.y - (1 - b.life) * 35);
+    x.beginPath(); x.arc(0, 0, b.sz * b.life, 0, Math.PI * 2);
+    x.fillStyle = `rgba(255,255,255,${b.life * 0.5})`; x.fill();
+    x.restore(); b.life -= 0.006;
+  }
+  hearts = hearts.filter(h => h.life > 0);
+  for (const h of hearts) {
+    x.save(); x.translate(50, -30 - (1 - h.life) * 45);
+    x.fillStyle = `rgba(255,140,140,${h.life})`; x.font = `${22 * h.life}px Arial`;
+    x.textAlign = 'center'; x.fillText('❤️', 0, 0);
+    x.restore(); h.life -= 0.012;
+  }
+
   x.restore();
 }
 
 function loop() {
-  const dt=0.016; T+=dt;
-  if(state==='eat'||state==='play'){animT+=dt;animP=Math.min(1,animT/1.6);if(animP>=1){state='idle';animT=0;animP=0}}
-  else{
-    S.hunger=Math.max(0,S.hunger-0.4*dt);
-    S.mood=Math.max(0,S.mood-0.2*dt);
-    S.energy=Math.max(0,S.energy-0.12*dt);
-    if(S.energy<20&&state!=='sleep'){state='sleep'}
-    if(state==='sleep'){S.energy=Math.min(100,S.energy+1.5*dt);S.mood=Math.min(100,S.mood+0.8*dt);if(S.energy>80)state='idle'}
-    if(state==='idle'&&Math.random()<0.004){state='walk';setTimeout(()=>{if(state==='walk')state='idle'},4000)}
-    if(state==='idle'&&Math.random()<0.004)bubbles.push({x:50+Math.random()*12-6,y:Math.random()*12-6,sz:4+Math.random()*4,life:1})
+  const dt = 0.016; T += dt;
+  if (state === 'eat' || state === 'play') { animT += dt; animP = Math.min(1, animT / 1.6);
+    if (animP >= 1) { state = 'idle'; animT = 0; animP = 0; }
+  } else {
+    S.hunger = Math.max(0, S.hunger - 0.4 * dt);
+    S.mood = Math.max(0, S.mood - 0.2 * dt);
+    S.energy = Math.max(0, S.energy - 0.12 * dt);
+    if (S.energy < 20 && state !== 'sleep') state = 'sleep';
+    if (state === 'sleep') { S.energy = Math.min(100, S.energy + 1.5 * dt);
+      S.mood = Math.min(100, S.mood + 0.8 * dt); if (S.energy > 80) state = 'idle'; }
+    if (state === 'idle' && Math.random() < 0.004) { state = 'walk';
+      setTimeout(() => { if (state === 'walk') state = 'idle'; }, 4000); }
+    if (state === 'idle' && Math.random() < 0.004) bubbles.push({
+      x: 52 + Math.random() * 10 - 5, y: Math.random() * 10 - 5, sz: 4 + Math.random() * 4, life: 1 });
   }
   draw();
-  document.getElementById('hv').textContent=Math.round(S.hunger);
-  document.getElementById('mv').textContent=Math.round(S.mood);
-  document.getElementById('ev').textContent=Math.round(S.energy);
-  document.getElementById('cv').textContent=Math.round(S.coins);
+  document.getElementById('hv').textContent = Math.round(S.hunger);
+  document.getElementById('mv').textContent = Math.round(S.mood);
+  document.getElementById('ev').textContent = Math.round(S.energy);
+  document.getElementById('cv').textContent = Math.round(S.coins);
   requestAnimationFrame(loop);
 }
 loop();
